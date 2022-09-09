@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -25,8 +26,31 @@ public class MapGenerator : MonoBehaviour
     public bool autoUpdate;
     public TerrainType[] regions;
     
+    public void DrawMapInEditor()
+    {
+        MapData mapData = GenerateMapData();
+
+        MapDisplay display = FindObjectOfType<MapDisplay>();
+        if (drawMode == DrawMode.NoiseMap)
+        {
+            display.DrawTexture(TextureGenerator.TextureFromHeightMap(mapData.heightMap));
+        }
+        else if (drawMode == DrawMode.ColourMap)
+        {
+            display.DrawTexture(TextureGenerator.TextureFromColourMap(mapData.colourMap, mapChunkSize, mapChunkSize));
+        }
+        else if (drawMode == DrawMode.Mesh)
+        {
+            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(mapData.heightMap, heightMultiplier, meshHeightCurve, levelOfDeatial), TextureGenerator.TextureFromColourMap(mapData.colourMap, mapChunkSize, mapChunkSize));
+        }
+    }
+
+    public void RequestMapData(Action<MapData> callback)
+    {
+
+    }
     
-    public void GenerateMap() {
+    MapData GenerateMapData() {
         float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, noiseScale, octaves, persistance, lacunarity, offset);
         Color[] colourMap = new Color[mapChunkSize * mapChunkSize];
         
@@ -41,16 +65,7 @@ public class MapGenerator : MonoBehaviour
                 }
             }
         }
-
-        MapDisplay display = FindObjectOfType<MapDisplay>();
-        if(drawMode == DrawMode.NoiseMap) {
-            display.DrawTexture(TextureGenerator.TextureFromHeightMap(noiseMap));
-        } else if( drawMode == DrawMode.ColourMap) {
-            display.DrawTexture(TextureGenerator.TextureFromColourMap(colourMap, mapChunkSize, mapChunkSize));
-        } else if(drawMode == DrawMode.Mesh) {
-            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(noiseMap, heightMultiplier, meshHeightCurve, levelOfDeatial), TextureGenerator.TextureFromColourMap(colourMap, mapChunkSize, mapChunkSize));
-        }
-        
+        return new MapData(noiseMap, colourMap);
     }
 
     void OnValidate()
@@ -70,4 +85,16 @@ public struct TerrainType {
     public string name;
     public float height;
     public Color colour;
+}
+
+public struct MapData
+{
+    public float[,] heightMap;
+    public Color[] colourMap;
+
+    public MapData(float[,] heightMap, Color[] colourMap)
+    {
+        this.heightMap = heightMap;
+        this.colourMap = colourMap;
+    }
 }
